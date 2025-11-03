@@ -1,10 +1,17 @@
+import { type NewRequest, useAddRequest } from '@entities/request';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Stack, styled, TextField, Typography } from '@mui/material';
 import {
-	type MainFormValues,
-	mainValidationSchema,
-} from '@pages/main/model/main-validation-schema';
+	Alert,
+	Button,
+	Snackbar,
+	Stack,
+	styled,
+	TextField,
+	Typography,
+} from '@mui/material';
+import { mainValidationSchema } from '@pages/main/model/main-validation-schema';
 import { PhoneMaskInput } from '@shared/ui/phone-input-mask';
+import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 const StyledStack = styled(Stack)(({ theme }) => ({
@@ -22,23 +29,68 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
 	background: theme.palette.common.white,
 }));
 
-const initialValues: MainFormValues = {
+const initialValues: NewRequest = {
 	fullName: '',
 	phone: '',
 	problemDescription: '',
 };
 
+type SnackbarState = {
+	message: string;
+	open: boolean;
+	severity: 'error' | 'success';
+};
+
 export const MainForm = () => {
+	const [snackbar, setSnackbar] = useState<SnackbarState>({
+		message: '',
+		open: false,
+		severity: 'success',
+	});
+
 	const {
 		control,
 		formState: { errors, isSubmitting },
 		handleSubmit,
 		register,
-	} = useForm<MainFormValues>({
+		reset,
+	} = useForm<NewRequest>({
 		defaultValues: initialValues,
 		mode: 'onBlur',
 		resolver: zodResolver(mainValidationSchema),
 	});
+
+	const addRequest = useAddRequest();
+
+	const handleCloseSnackbar = () => {
+		setSnackbar((prev: SnackbarState) => ({ ...prev, open: false }));
+	};
+
+	const onSubmit = async (data: NewRequest) => {
+		try {
+			await addRequest.mutateAsync(data, {
+				onSuccess: () => {
+					reset();
+					setSnackbar({
+						message: 'Request successfully created',
+						open: true,
+						severity: 'success',
+					});
+				},
+			});
+		} catch (error) {
+			const message =
+				error?.response?.data?.message ||
+				error?.message ||
+				'Something went wrong';
+
+			setSnackbar({
+				message,
+				open: true,
+				severity: 'error',
+			});
+		}
+	};
 
 	return (
 		<StyledStack>
@@ -46,7 +98,7 @@ export const MainForm = () => {
 				Doctor's appointment
 			</Typography>
 			<form
-				onSubmit={handleSubmit((data) => console.log(data))}
+				onSubmit={handleSubmit(onSubmit)}
 				style={{
 					display: 'flex',
 					flexDirection: 'column',
@@ -104,6 +156,21 @@ export const MainForm = () => {
 					Submit
 				</Button>
 			</form>
+
+			<Snackbar
+				anchorOrigin={{ horizontal: 'center', vertical: 'bottom' }}
+				autoHideDuration={4000}
+				onClose={handleCloseSnackbar}
+				open={snackbar.open}
+			>
+				<Alert
+					onClose={handleCloseSnackbar}
+					severity={snackbar.severity}
+					sx={{ width: '100%' }}
+				>
+					{snackbar.message}
+				</Alert>
+			</Snackbar>
 		</StyledStack>
 	);
 };

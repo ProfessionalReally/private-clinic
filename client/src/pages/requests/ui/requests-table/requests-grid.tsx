@@ -1,52 +1,31 @@
+import type { RequestsWithId } from '@entities/request';
 import type { ColDef } from 'ag-grid-community';
 
 import { AgGridReact } from 'ag-grid-react';
 import dayjs from 'dayjs';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
-type Request = {
-	date: string;
-	fullname: string;
-	phone: string;
-	problem: string;
-};
-
-export const RequestsTable = () => {
-	const [rowData] = useState<Request[]>([
-		{
-			date: '2025-10-18T14:35:00Z',
-			fullname: 'Ivan Ivanov',
-			phone: '+7 (999) 123-45-67',
-			problem: 'Back pain',
-		},
-		{
-			date: '2025-10-15T09:20:00Z',
-			fullname: 'Petr Petrov',
-			phone: '+7 (921) 777-88-99',
-			problem: 'Headache',
-		},
-		{
-			date: '2025-10-12T18:45:00Z',
-			fullname: 'Anna Sidorova',
-			phone: '+7 (902) 111-22-33',
-			problem: 'High blood pressure',
-		},
-	]);
-
-	const columnDefs = useMemo<ColDef<Request>[]>(
+export const RequestsGrid = ({ rowData }: { rowData: RequestsWithId[] }) => {
+	const columnDefs = useMemo<ColDef<RequestsWithId>[]>(
 		() => [
+			{
+				field: 'id',
+				headerName: 'ID',
+				hide: true,
+				width: 100,
+			},
 			{
 				comparator: (a, b) => dayjs(a).valueOf() - dayjs(b).valueOf(),
 				field: 'date',
 				filter: 'agDateColumnFilter',
-				headerName: 'Date & Time',
+				headerName: 'DateTime',
 				sort: 'desc',
 				valueFormatter: (params) =>
 					dayjs(params.value).locale('ru').format('DD.MM.YYYY HH:mm'),
 				width: 200,
 			},
 			{
-				field: 'fullname',
+				field: 'fullName',
 				headerName: 'Full Name',
 				width: 220,
 			},
@@ -56,7 +35,7 @@ export const RequestsTable = () => {
 				width: 180,
 			},
 			{
-				field: 'problem',
+				field: 'problemDescription',
 				flex: 1,
 				headerName: 'Problem Description',
 			},

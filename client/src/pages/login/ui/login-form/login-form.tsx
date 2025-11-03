@@ -1,21 +1,30 @@
+import type { User } from '@entities/user';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import {
+	Alert,
 	Button,
 	IconButton,
 	InputAdornment,
+	Snackbar,
 	Stack,
 	styled,
 	TextField,
 	Typography,
 } from '@mui/material';
-import {
-	type LoginFormValues,
-	loginValidationSchema,
-} from '@pages/login/model/login-validation-schema';
+import { useLogin } from '@pages/login/api/auth/login-mutation';
+import { loginValidationSchema } from '@pages/login/model/login-validation-schema';
+import { ROUTE_PATH } from '@shared/config/router/routes';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
+
+type SnackbarState = {
+	message: string;
+	open: boolean;
+};
 
 const StyledStack = styled(Stack)(({ theme }) => ({
 	background: theme.palette.grey[100],
@@ -32,15 +41,25 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
 	background: theme.palette.common.white,
 }));
 
-const initialValues: LoginFormValues = {
+const initialValues: User = {
 	email: '',
 	password: '',
 };
 
 export const LoginForm = () => {
 	const [showPassword, setShowPassword] = useState(false);
+	const [snackbar, setSnackbar] = useState<SnackbarState>({
+		message: '',
+		open: false,
+	});
+
+	const login = useLogin();
+	const navigate = useNavigate();
 
 	const handleClickShowPassword = () => setShowPassword((show) => !show);
+	const handleCloseSnackbar = () => {
+		setSnackbar({ message: '', open: false });
+	};
 
 	const handleMouseDownPassword = (
 		event: React.MouseEvent<HTMLButtonElement>,
@@ -58,11 +77,31 @@ export const LoginForm = () => {
 		formState: { errors, isSubmitting },
 		handleSubmit,
 		register,
-	} = useForm<LoginFormValues>({
+	} = useForm<User>({
 		defaultValues: initialValues,
 		mode: 'onBlur',
 		resolver: zodResolver(loginValidationSchema),
 	});
+
+	const onSubmit = async (data: User) => {
+		try {
+			await login.mutateAsync(data, {
+				onSuccess: () => {
+					navigate(ROUTE_PATH.REQUESTS);
+				},
+			});
+		} catch (error) {
+			const message =
+				error?.response?.data?.message ||
+				error?.message ||
+				'Something went wrong';
+
+			setSnackbar({
+				message,
+				open: true,
+			});
+		}
+	};
 
 	return (
 		<StyledStack>
@@ -70,7 +109,7 @@ export const LoginForm = () => {
 				Login
 			</Typography>
 			<form
-				onSubmit={handleSubmit((data) => console.log(data))}
+				onSubmit={handleSubmit(onSubmit)}
 				style={{
 					display: 'flex',
 					flexDirection: 'column',
@@ -131,6 +170,15 @@ export const LoginForm = () => {
 					Submit
 				</Button>
 			</form>
+			<Snackbar
+				autoHideDuration={4000}
+				onClose={handleCloseSnackbar}
+				open={snackbar.open}
+			>
+				<Alert onClose={handleCloseSnackbar} severity='error'>
+					{snackbar.message}
+				</Alert>
+			</Snackbar>
 		</StyledStack>
 	);
 };

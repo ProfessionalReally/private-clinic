@@ -4,7 +4,12 @@ import { RequestsTable } from '../requests-table';
 
 export const RequestsLayout = () => {
 	return (
-		<Stack alignItems='center' height='100%' justifyContent='center'>
+		<Stack
+			alignItems='center'
+			flex='1'
+			height='100%'
+			justifyContent='center'
+		>
 			<RequestsTable />
 		</Stack>
 	);
